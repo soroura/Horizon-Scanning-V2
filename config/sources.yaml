@@ -339,3 +339,197 @@ sources:
     priority_rank: null
     notes: "Free API key recommended. Query: clinical AI / medical AI. Returns citation velocity."
     active: true
+
+  # ─── Standards ───────────────────────────────────────────────────────────────
+  - id: hl7_international
+    name: "HL7 International"
+    category: standards
+    url: "https://www.hl7.org/"
+    feed_type: rss
+    feed_url: "https://www.hl7.org/feed/"
+    access: free
+    auth_required: false
+    update_frequency: weekly
+    domains:
+      - digital_health
+    horizon_tier: H2
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Health interoperability standards — FHIR, CDA"
+    active: true
+
+  - id: ihe_international
+    name: "IHE International"
+    category: standards
+    url: "https://www.ihe.net/"
+    feed_type: rss
+    feed_url: "https://www.ihe.net/feed/"
+    access: free
+    auth_required: false
+    update_frequency: weekly
+    domains:
+      - digital_health
+    horizon_tier: H2
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Integration profiles for health IT"
+    active: true
+
+  - id: snomed_international
+    name: "SNOMED International"
+    category: standards
+    url: "https://www.snomed.org/"
+    feed_type: rss
+    feed_url: "https://www.snomed.org/feed"
+    access: free
+    auth_required: false
+    update_frequency: monthly
+    domains:
+      - digital_health
+    horizon_tier: H2
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Clinical terminology standard"
+    active: true
+
+  - id: openehr_foundation
+    name: "OpenEHR Foundation"
+    category: standards
+    url: "https://www.openehr.org/"
+    feed_type: rss
+    feed_url: "https://www.openehr.org/news/feed/"
+    access: free
+    auth_required: false
+    update_frequency: monthly
+    domains:
+      - digital_health
+    horizon_tier: H3
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Open electronic health record architecture"
+    active: true
+
+  # ─── Regulatory (additional) ────────────────────────────────────────────────
+  - id: onc_healthit
+    name: "ONC HealthIT.gov"
+    category: regulatory
+    url: "https://www.healthit.gov/"
+    feed_type: rss
+    feed_url: "https://www.healthit.gov/newsroom/rss.xml"
+    access: free
+    auth_required: false
+    update_frequency: weekly
+    domains:
+      - digital_health
+    horizon_tier: H1
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "US Office of National Coordinator for Health IT"
+    active: true
+
+  - id: ema_human_medicines
+    name: "EMA Human Medicines"
+    category: regulatory
+    url: "https://www.ema.europa.eu/"
+    feed_type: rss
+    feed_url: "https://www.ema.europa.eu/en/news/rss"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains:
+      - ai_health
+      - digital_health
+    horizon_tier: H1
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Broader EMA news — supplements ema_news"
+    active: true
+
+  # ─── News / Industry ────────────────────────────────────────────────────────
+  - id: himss_news
+    name: "HIMSS News"
+    category: news
+    url: "https://www.himss.org/"
+    feed_type: rss
+    feed_url: "https://www.himss.org/news/feed"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains:
+      - digital_health
+      - ai_health
+    horizon_tier: H2
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Health IT industry news and events"
+    active: true
+
+  # ─── Specialty / Research Labs ──────────────────────────────────────────────
+  - id: turing_health
+    name: "Alan Turing Institute — Health"
+    category: specialty
+    url: "https://www.turing.ac.uk/"
+    feed_type: rss
+    feed_url: "https://www.turing.ac.uk/rss.xml"
+    access: free
+    auth_required: false
+    update_frequency: weekly
+    domains:
+      - ai_health
+    horizon_tier: H3
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "UK national AI institute — health research"
+    active: true
+
+  - id: deepmind_health
+    name: "Google DeepMind Health"
+    category: specialty
+    url: "https://deepmind.google/"
+    feed_type: rss
+    feed_url: "https://deepmind.google/blog/rss.xml"
+    access: free
+    auth_required: false
+    update_frequency: weekly
+    domains:
+      - ai_health
+    horizon_tier: H3
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "DeepMind health publications and blog"
+    active: true
+
+  # ─── Aggregators (additional) ───────────────────────────────────────────────
+  - id: huggingface_papers
+    name: "Hugging Face Papers"
+    category: aggregator
+    url: "https://huggingface.co/"
+    feed_type: rss
+    feed_url: "https://huggingface.co/papers/rss"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains:
+      - ai_health
+    horizon_tier: H4
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Community-curated AI papers"
+    active: true
+
+  - id: dblp_health_ai
+    name: "DBLP Health AI"
+    category: aggregator
+    url: "https://dblp.org/"
+    feed_type: rss
+    feed_url: "https://dblp.org/search/publ/api?q=clinical+AI+health&format=xml"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains:
+      - ai_health
+    horizon_tier: H3
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "CS bibliography — health AI papers"
+    active: true
