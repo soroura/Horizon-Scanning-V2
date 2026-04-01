@@ -39,6 +39,10 @@ async def fetch_api(
         elif source.id.startswith("ema_"):
             from src.module1_scanner.scanners.ema import fetch_ema
             items = await fetch_ema(source, days, client)
+        elif source.id.startswith("openfda"):
+            items = await _fetch_openfda(source, days, client)
+        elif source.id == "papers_with_code":
+            items = await _fetch_papers_with_code(source, days, client)
         else:
             items = await _fetch_generic_json(source, days, client)
     except Exception as exc:
@@ -310,6 +314,100 @@ async def _fetch_semantic_scholar(
             "journal": paper.get("venue") or "Semantic Scholar",
             "doi": doi,
             "pmid": str(pmid) if pmid else None,
+            "is_preprint": False,
+            "_source": source,
+        })
+
+    return items
+
+
+# ─── openFDA ────────────────────────────────────────────────────────────────
+
+async def _fetch_openfda(
+    source: Source, days: int, client: httpx.AsyncClient
+) -> list[dict]:
+    """Fetch recent 510(k) device clearances from openFDA."""
+    end_dt = datetime.now(tz=timezone.utc)
+    start_dt = end_dt - timedelta(days=days)
+    date_range = f"[{start_dt.strftime('%Y%m%d')}+TO+{end_dt.strftime('%Y%m%d')}]"
+
+    params = {
+        "search": f"decision_date:{date_range}",
+        "limit": "100",
+    }
+    resp = await client.get(source.feed_url, params=params, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+
+    items = []
+    for result in data.get("results", []):
+        device_name = result.get("device_name", "").strip()
+        if not device_name:
+            continue
+
+        k_number = result.get("k_number", "")
+        decision_date = _parse_iso_date(result.get("decision_date", ""))
+        applicant = result.get("applicant", "")
+        committee = result.get("review_advisory_committee", "")
+
+        summary = f"510(k) clearance for {device_name} by {applicant}."
+        if committee:
+            summary += f" Advisory committee: {committee}."
+
+        items.append({
+            "title": f"FDA 510(k): {device_name}",
+            "url": f"https://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfpmn/pmn.cfm?ID={k_number}",
+            "summary": summary[:2000],
+            "published_date": decision_date or end_dt.date(),
+            "authors": [applicant] if applicant else [],
+            "journal": "openFDA 510(k)",
+            "doi": None,
+            "pmid": None,
+            "is_preprint": False,
+            "_source": source,
+        })
+
+    return items
+
+
+# ─── Papers With Code ────────────────────────────────────────────────────────
+
+async def _fetch_papers_with_code(
+    source: Source, days: int, client: httpx.AsyncClient
+) -> list[dict]:
+    """Fetch recent health-related ML papers from Papers With Code API."""
+    params = {
+        "q": "medical OR clinical OR health OR radiology OR pathology",
+        "items_per_page": "50",
+        "ordering": "-published",
+    }
+    resp = await client.get(source.feed_url, params=params, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+
+    cutoff = (datetime.now(tz=timezone.utc) - timedelta(days=days)).date()
+    items = []
+    for paper in data.get("results", []):
+        pub_date = _parse_iso_date(paper.get("published", ""))
+        if pub_date is None or pub_date < cutoff:
+            continue
+
+        title = paper.get("title", "").strip()
+        if not title:
+            continue
+
+        url = paper.get("url_abs") or f"https://paperswithcode.com/paper/{paper.get('id', '')}"
+        abstract = paper.get("abstract", "") or ""
+
+        items.append({
+            "title": title,
+            "url": url,
+            "summary": abstract[:2000],
+            "published_date": pub_date,
+            "authors": (paper.get("authors") or [])[:10],
+            "journal": "Papers With Code",
+            "doi": None,
+            "pmid": None,
             "is_preprint": False,
             "_source": source,
         })

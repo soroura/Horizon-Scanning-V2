@@ -551,3 +551,37 @@ sources:
     priority_rank: null
     notes: "Neural and evolutionary computing"
     active: true
+
+  # ─── openFDA ────────────────────────────────────────────────────────────────
+  - id: openfda_devices
+    name: "openFDA Device Clearances"
+    category: regulatory
+    url: "https://api.fda.gov/"
+    feed_type: api
+    feed_url: "https://api.fda.gov/device/510k.json"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains: [ai_health, digital_health]
+    horizon_tier: H1
+    programmatic_access: full
+    priority_rank: null
+    notes: "510(k) device clearances including AI/ML medical devices"
+    active: true
+
+  # ─── ML Papers With Code ────────────────────────────────────────────────────
+  - id: papers_with_code
+    name: "Papers With Code"
+    category: aggregator
+    url: "https://paperswithcode.com/"
+    feed_type: api
+    feed_url: "https://paperswithcode.com/api/v1/papers/"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains: [ai_health]
+    horizon_tier: H3
+    programmatic_access: full
+    priority_rank: null
+    notes: "ML papers linked to code — includes medical imaging, clinical NLP"
+    active: true
