@@ -533,3 +533,21 @@ sources:
     priority_rank: null
     notes: "CS bibliography — health AI papers"
     active: true
+
+  # ─── AI Preprints (additional) ──────────────────────────────────────────────
+  - id: arxiv_cs_ne
+    name: "arXiv cs.NE"
+    category: preprints
+    url: "https://arxiv.org"
+    feed_type: api
+    feed_url: "https://export.arxiv.org/api/query"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - ai_health
+    horizon_tier: H4
+    programmatic_access: full
+    priority_rank: null
+    notes: "Neural and evolutionary computing"
+    active: true

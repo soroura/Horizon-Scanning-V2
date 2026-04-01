@@ -57,6 +57,7 @@ _ARXIV_CATEGORY_MAP = {
     "arxiv_cs_cv":   "cs.CV",
     "arxiv_cs_cl":   "cs.CL",
     "arxiv_eess_iv": "eess.IV",
+    "arxiv_cs_ne":   "cs.NE",
 }
 
 async def _fetch_arxiv(source: Source, days: int, client: httpx.AsyncClient) -> list[dict]:
