@@ -51,7 +51,7 @@ def scan(
     run_id = str(uuid.uuid4())
 
     # Import here to keep startup fast
-    from src.database import init_db, save_run_start, save_run_complete, save_items, get_seen_item_ids
+    from src.database import init_db, save_run_start, save_run_complete, save_items, get_seen_item_ids, save_source_health
     from src.module1_scanner.engine import run_scan
     from src.module2_scorer.engine import score_items
     from src.module3_reporter.engine import generate_report
@@ -61,7 +61,7 @@ def scan(
     save_run_start(db, run_id, profile, started_at)
 
     # Phase 1: Scan
-    scan_items, total_fetched = asyncio.run(
+    scan_items, total_fetched, source_results = asyncio.run(
         run_scan(
             profile_name=profile,
             days=days,
@@ -93,11 +93,13 @@ def scan(
         "profile_name": profile,
         "run_date": started_at.strftime("%Y-%m-%d"),
         "sources_count": len(set(item.source_id for item in scan_items)),
+        "source_health": source_results,
     }
     generate_report(scorecards, items_by_id, run_meta, formats, output)
 
     # Persist
     save_items(db, run_id, scan_items, scorecards)
+    save_source_health(db, run_id, source_results)
     completed_at = datetime.now(tz=timezone.utc)
     save_run_complete(db, run_id, completed_at, total_fetched, len(scorecards))
 

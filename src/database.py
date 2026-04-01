@@ -84,6 +84,19 @@ def init_db(db_path: Path = DEFAULT_DB_PATH) -> sqlite_utils.Database:
         db["scan_items"].create_index(["triage_level"])
         db["scan_items"].create_index(["published_date"])
 
+    if "source_health" not in db.table_names():
+        db["source_health"].create({
+            "id": int,
+            "run_id": str,
+            "source_id": str,
+            "source_name": str,
+            "status": str,
+            "items_count": int,
+            "error_message": str,
+            "duration_ms": int,
+        }, pk="id")
+        db["source_health"].create_index(["run_id"])
+
     return db
 
 
@@ -172,6 +185,28 @@ def save_items(
 
     if rows:
         db["scan_items"].insert_all(rows)
+
+
+def save_source_health(
+    db: sqlite_utils.Database,
+    run_id: str,
+    results: list,
+) -> None:
+    """Persist per-source health results for a scan run."""
+    rows = [
+        {
+            "run_id": run_id,
+            "source_id": r.source_id,
+            "source_name": r.source_name,
+            "status": r.status,
+            "items_count": r.items_count,
+            "error_message": r.error_message,
+            "duration_ms": r.duration_ms,
+        }
+        for r in results
+    ]
+    if rows:
+        db["source_health"].insert_all(rows)
 
 
 # ─── Read helpers ────────────────────────────────────────────────────────────
