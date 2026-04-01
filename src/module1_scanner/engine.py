@@ -6,6 +6,8 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import time
+from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -23,18 +25,29 @@ from src.module1_scanner.scanners.web import fetch_web
 _MAX_CONCURRENT = 5  # asyncio semaphore limit
 
 
+@dataclass
+class SourceResult:
+    """Per-source outcome from a scan run."""
+    source_id: str
+    source_name: str
+    status: str          # "ok" | "warn" | "error"
+    items_count: int
+    error_message: str   # empty if no error
+    duration_ms: int
+
+
 async def run_scan(
     profile_name: str,
     days: int,
     seen_ids: set[str],
     config_dir: Path | None = None,
     source_ids: list[str] | None = None,
-) -> tuple[list[ScanItem], int]:
+) -> tuple[list[ScanItem], int, list[SourceResult]]:
     """
     Fetch items from all active sources in the profile, normalise and deduplicate.
 
     Returns:
-        (scan_items, total_fetched_before_dedup)
+        (scan_items, total_fetched_before_dedup, source_results)
     """
     kwargs = {} if config_dir is None else {"config_dir": config_dir}
     profile = load_profile(profile_name, **kwargs)
@@ -52,7 +65,7 @@ async def run_scan(
 
     if not sources:
         print("[WARN]  No active sources matched the profile filters.", file=sys.stderr)
-        return [], 0
+        return [], 0, []
 
     print(
         f"[INFO]  Scanning {len(sources)} sources "
@@ -71,10 +84,14 @@ async def run_scan(
             _fetch_source(source, days, client, semaphore)
             for source in sources
         ]
-        raw_batches = await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks)
 
-    # Flatten
-    all_raw: list[dict] = [item for batch in raw_batches for item in batch]
+    # Separate items from health results
+    all_raw: list[dict] = []
+    source_results: list[SourceResult] = []
+    for items, health in results:
+        all_raw.extend(items)
+        source_results.append(health)
     total_fetched = len(all_raw)
 
     # Domain tag → drop unmatched → normalise → deduplicate
@@ -98,7 +115,7 @@ async def run_scan(
         f"[INFO]  Deduplication: {total_fetched - len(scan_items)} items suppressed",
         file=sys.stderr,
     )
-    return scan_items, total_fetched
+    return scan_items, total_fetched, source_results
 
 
 async def _fetch_source(
@@ -106,21 +123,35 @@ async def _fetch_source(
     days: int,
     client: httpx.AsyncClient,
     semaphore: asyncio.Semaphore,
-) -> list[dict]:
+) -> tuple[list[dict], SourceResult]:
+    start = time.monotonic()
     async with semaphore:
         try:
             if source.feed_type == "rss":
-                return fetch_rss(source, days)
+                items = fetch_rss(source, days)
             elif source.feed_type == "api":
-                return await fetch_api(source, days, client)
+                items = await fetch_api(source, days, client)
             elif source.feed_type == "web_scrape":
-                return await fetch_web(source, days, client)
+                items = await fetch_web(source, days, client)
             else:
                 print(f"[WARN]  {source.id} — unsupported feed_type: {source.feed_type}", file=sys.stderr)
-                return []
+                items = []
         except Exception as exc:
+            elapsed = int((time.monotonic() - start) * 1000)
             print(f"[WARN]  {source.id} — unexpected error: {exc}", file=sys.stderr)
-            return []
+            return [], SourceResult(
+                source_id=source.id, source_name=source.name,
+                status="error", items_count=0,
+                error_message=str(exc)[:200], duration_ms=elapsed,
+            )
+
+    elapsed = int((time.monotonic() - start) * 1000)
+    status = "ok" if items else "warn"
+    return items, SourceResult(
+        source_id=source.id, source_name=source.name,
+        status=status, items_count=len(items),
+        error_message="", duration_ms=elapsed,
+    )
 
 
 def _normalise(raw: dict, source: Source) -> ScanItem | None:
