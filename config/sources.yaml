@@ -1,0 +1,341 @@
+sources:
+  # ─── Aggregators ────────────────────────────────────────────────────────────
+  - id: pubmed_eutils
+    name: "PubMed E-utilities"
+    category: aggregator
+    url: "https://pubmed.ncbi.nlm.nih.gov/"
+    feed_type: api
+    feed_url: "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - ai_health
+      - digital_health
+    horizon_tier: H3
+    programmatic_access: full
+    priority_rank: 1
+    notes: "Use esearch + efetch. Query: (clinical AI OR medical AI OR digital health) AND hasabstract"
+    active: true
+
+  # ─── AI Preprints ────────────────────────────────────────────────────────────
+  - id: arxiv_cs_ai
+    name: "arXiv cs.AI"
+    category: preprints
+    url: "https://arxiv.org"
+    feed_type: api
+    feed_url: "https://export.arxiv.org/api/query"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - ai_health
+    horizon_tier: H4
+    programmatic_access: full
+    priority_rank: null
+    notes: "REST API. Query: cat:cs.AI AND (ti:clinical OR ti:medical OR ti:health). is_preprint: true"
+    active: true
+
+  - id: arxiv_cs_lg
+    name: "arXiv cs.LG (Machine Learning)"
+    category: preprints
+    url: "https://arxiv.org"
+    feed_type: api
+    feed_url: "https://export.arxiv.org/api/query"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - ai_health
+    horizon_tier: H4
+    programmatic_access: full
+    priority_rank: null
+    notes: "cat:cs.LG AND (ti:clinical OR ti:medical OR ti:health). is_preprint: true"
+    active: true
+
+  - id: arxiv_cs_cv
+    name: "arXiv cs.CV (Computer Vision)"
+    category: preprints
+    url: "https://arxiv.org"
+    feed_type: api
+    feed_url: "https://export.arxiv.org/api/query"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - ai_health
+    horizon_tier: H4
+    programmatic_access: full
+    priority_rank: null
+    notes: "cat:cs.CV AND (ti:medical OR ti:clinical OR ti:radiology OR ti:pathology). is_preprint: true"
+    active: true
+
+  - id: arxiv_cs_cl
+    name: "arXiv cs.CL (NLP / LLMs)"
+    category: preprints
+    url: "https://arxiv.org"
+    feed_type: api
+    feed_url: "https://export.arxiv.org/api/query"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - ai_health
+    horizon_tier: H4
+    programmatic_access: full
+    priority_rank: null
+    notes: "cat:cs.CL AND (ti:clinical OR ti:EHR OR ti:medical). is_preprint: true"
+    active: true
+
+  - id: arxiv_eess_iv
+    name: "arXiv eess.IV (Image Processing)"
+    category: preprints
+    url: "https://arxiv.org"
+    feed_type: api
+    feed_url: "https://export.arxiv.org/api/query"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - ai_health
+    horizon_tier: H4
+    programmatic_access: full
+    priority_rank: null
+    notes: "cat:eess.IV AND (ti:medical OR ti:clinical). is_preprint: true"
+    active: true
+
+  - id: medrxiv_health_informatics
+    name: "medRxiv — Health Informatics"
+    category: preprints
+    url: "https://www.medrxiv.org"
+    feed_type: api
+    feed_url: "https://api.medrxiv.org/details/medrxiv"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - ai_health
+      - digital_health
+    horizon_tier: H4
+    programmatic_access: full
+    priority_rank: null
+    notes: "REST API: /details/medrxiv/start_date/end_date/cursor/json. subject=health_informatics. is_preprint: true"
+    active: true
+
+  - id: medrxiv_health_policy
+    name: "medRxiv — Health Policy"
+    category: preprints
+    url: "https://www.medrxiv.org"
+    feed_type: api
+    feed_url: "https://api.medrxiv.org/details/medrxiv"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - digital_health
+    horizon_tier: H4
+    programmatic_access: full
+    priority_rank: null
+    notes: "subject=health_policy. is_preprint: true"
+    active: true
+
+  # ─── AI & Digital Health Journals (OA RSS) ──────────────────────────────────
+  - id: jmir_rss
+    name: "Journal of Medical Internet Research (JMIR)"
+    category: journals
+    url: "https://www.jmir.org/"
+    feed_type: rss
+    feed_url: "https://www.jmir.org/feed/"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - digital_health
+      - ai_health
+    horizon_tier: H2
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Open access CC BY. Primary digital health / mHealth journal."
+    active: true
+
+  - id: npj_digital_medicine
+    name: "npj Digital Medicine (Nature)"
+    category: journals
+    url: "https://www.nature.com/npjdigitalmed/"
+    feed_type: rss
+    feed_url: "https://www.nature.com/npjdigitalmed.rss"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - digital_health
+      - ai_health
+    horizon_tier: H2
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Open access Springer Nature."
+    active: true
+
+  - id: lancet_digital_health
+    name: "The Lancet Digital Health"
+    category: journals
+    url: "https://www.thelancet.com/journals/landig/home"
+    feed_type: rss
+    feed_url: "https://www.thelancet.com/action/showFeed?type=etoc&feed=rss&jc=landig"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - digital_health
+      - ai_health
+    horizon_tier: H2
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Open access Lancet. High-impact clinical digital health."
+    active: true
+
+  - id: jamia_rss
+    name: "JAMIA (Journal of American Medical Informatics Association)"
+    category: journals
+    url: "https://academic.oup.com/jamia"
+    feed_type: web_scrape
+    feed_url: "https://academic.oup.com/jamia/issue"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - digital_health
+      - ai_health
+    horizon_tier: H2
+    programmatic_access: limited
+    priority_rank: null
+    notes: "OUP removed RSS feeds and blocks automated access (403). Deactivated until manual workaround available."
+    active: false
+
+  - id: digital_health_sage
+    name: "Digital Health (SAGE)"
+    category: journals
+    url: "https://journals.sagepub.com/home/dhj"
+    feed_type: rss
+    feed_url: "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=dhj&type=etoc&feed=rss"
+    access: free
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - digital_health
+    horizon_tier: H3
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "Open access CC BY SAGE."
+    active: true
+
+  # ─── Regulatory (AI/Digital Health) ─────────────────────────────────────────
+  - id: fda_digital_health_coe
+    name: "FDA Digital Health Centre of Excellence"
+    category: regulatory
+    url: "https://www.fda.gov/medical-devices/digital-health-center-excellence"
+    feed_type: rss
+    feed_url: "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-releases/rss.xml"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains:
+      - ai_health
+      - digital_health
+    horizon_tier: H1
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "FDA medical devices RSS. Filter for digital health / AI content."
+    active: true
+
+  - id: mhra_ai_digital
+    name: "MHRA AI and Digital Regulation"
+    category: regulatory
+    url: "https://www.gov.uk/government/organisations/medicines-and-healthcare-products-regulatory-agency"
+    feed_type: rss
+    feed_url: "https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=medicines-and-healthcare-products-regulatory-agency"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains:
+      - ai_health
+      - digital_health
+    horizon_tier: H1
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "GOV.UK Atom feed. Filter for AI/digital health content."
+    active: true
+
+  # ─── Guidelines / HTA ───────────────────────────────────────────────────────
+  - id: nice_dht
+    name: "NICE Evidence Standards for Digital Health Technologies"
+    category: hta
+    url: "https://www.nice.org.uk/about/what-we-do/our-programmes/evidence-standards-framework-for-digital-health-technologies"
+    feed_type: web_scrape
+    feed_url: "https://www.nice.org.uk/guidance/published?type=dg&page=1&pageSize=20"
+    access: free
+    auth_required: false
+    update_frequency: weekly
+    domains:
+      - digital_health
+      - ai_health
+    horizon_tier: H1
+    programmatic_access: limited
+    priority_rank: null
+    notes: "NICE has no RSS. Web scrape from published guidance page (diagnostics type)."
+    active: true
+
+  # ─── WHO / International ────────────────────────────────────────────────────
+  - id: who_digital_health
+    name: "WHO Digital Health"
+    category: guidelines
+    url: "https://www.who.int/health-topics/digital-health"
+    feed_type: rss
+    feed_url: "https://www.who.int/rss-feeds/news-english.xml"
+    access: free
+    auth_required: false
+    update_frequency: weekly
+    domains:
+      - digital_health
+      - ai_health
+    horizon_tier: H1
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "WHO news RSS. Filter for digital health / AI content."
+    active: true
+
+  # ─── NHS / National Health IT ────────────────────────────────────────────────
+  - id: nhs_digital_transform
+    name: "NHS England Digital Transformation"
+    category: standards
+    url: "https://www.england.nhs.uk/"
+    feed_type: rss
+    feed_url: "https://www.england.nhs.uk/feed/"
+    access: free
+    auth_required: false
+    update_frequency: weekly
+    domains:
+      - digital_health
+    horizon_tier: H1
+    programmatic_access: rss_only
+    priority_rank: null
+    notes: "NHS England digital transformation news."
+    active: true
+
+  # ─── Semantic Scholar (AI research database) ─────────────────────────────────
+  - id: semantic_scholar_api
+    name: "Semantic Scholar"
+    category: aggregator
+    url: "https://www.semanticscholar.org"
+    feed_type: api
+    feed_url: "https://api.semanticscholar.org/graph/v1/paper/search"
+    access: free_registration
+    auth_required: false
+    update_frequency: continuous
+    domains:
+      - ai_health
+    horizon_tier: H3
+    programmatic_access: full
+    priority_rank: null
+    notes: "Free API key recommended. Query: clinical AI / medical AI. Returns citation velocity."
+    active: true

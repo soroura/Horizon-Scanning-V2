@@ -1,0 +1,30 @@
+profiles:
+  # w_a: Evidence Strength
+  # w_b: Clinical Practice Impact
+  # w_c: Insurance/Reimbursement Readiness
+  # w_d: Domain Relevance
+  # NOTE: w_a + w_b + w_c + w_d must sum to 1.0 (±0.001)
+
+  phase1_ai_digital:
+    w_a: 0.25
+    w_b: 0.30
+    w_c: 0.20
+    w_d: 0.25
+
+  full_scan:
+    w_a: 0.30
+    w_b: 0.35
+    w_c: 0.25
+    w_d: 0.10
+
+  safety_only:
+    w_a: 0.40
+    w_b: 0.35
+    w_c: 0.15
+    w_d: 0.10
+
+  insurance_focus:
+    w_a: 0.20
+    w_b: 0.25
+    w_c: 0.45
+    w_d: 0.10

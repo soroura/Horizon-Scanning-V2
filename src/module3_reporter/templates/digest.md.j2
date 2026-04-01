@@ -1,0 +1,55 @@
+HORIZON SCANNING BRIEF — {{ run_date }} — {{ profile_name | upper }}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Run ID: {{ run_id }}  |  Sources scanned: {{ sources_count }}  |  Items scored: {{ items | length }}
+
+## TRIAGE SUMMARY
+
+  🔴 Act Now:          {{ triage_counts["Act Now"] }} items
+  🟠 Watch:            {{ triage_counts["Watch"] }} items
+  🟡 Monitor:          {{ triage_counts["Monitor"] }} items
+  🟢 For Awareness:    {{ triage_counts["For Awareness"] }} items
+  ⚪ Low Signal:        {{ triage_counts["Low Signal"] }} items
+
+---
+
+## TOP {{ [items | length, 5] | min }} ITEMS THIS PERIOD
+
+{% for sc, item in top_items %}
+### {{ loop.index }}. {{ item.title | truncate(120) }}
+
+**Score**: {{ sc.composite_score }}/100 | **Triage**: {{ sc.triage_emoji }} {{ sc.triage_level }}
+**Source**: {{ item.source_name }} | **Published**: {{ item.published_date }} | **Horizon**: {{ item.horizon_tier }}
+**Domains**: {{ item.domains | join(", ") }}{% if item.is_preprint %} ⚠️ PREPRINT{% endif %}
+
+{{ sc.annotation }}
+
+**Suggested action**: {{ sc.suggested_action }}
+
+{% if item.url %}**URL**: {{ item.url }}{% endif %}
+
+---
+{% endfor %}
+
+## DOMAIN BREAKDOWN
+
+{% for domain, count in domain_counts.items() %}
+- **{{ domain }}**: {{ count }} items{% if domain_top[domain] %} (top: {{ domain_top[domain] | truncate(80) }}){% endif %}
+{% endfor %}
+
+---
+
+## FULL ITEM LIST ({{ items | length }} items, ordered by score)
+
+{% for sc, item in scored_items %}
+{{ sc.triage_emoji }} **{{ item.title | truncate(100) }}**
+Source: {{ item.source_name }} | Published: {{ item.published_date }} | Horizon: {{ item.horizon_tier }}{% if item.is_preprint %} | ⚠️ PREPRINT{% endif %}
+Score: {{ sc.composite_score }}/100 — Evidence: {{ sc.evidence_strength }} | Impact: {{ sc.clinical_impact }} | Insurance: {{ sc.insurance_readiness }} | Relevance: {{ sc.domain_relevance }}
+Domains: {{ item.domains | join(", ") }}
+
+{{ sc.annotation }}
+Suggested action: {{ sc.suggested_action }}
+URL: {{ item.url }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{% endfor %}

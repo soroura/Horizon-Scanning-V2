@@ -1,0 +1,60 @@
+profiles:
+  phase1_ai_digital:
+    name: "Phase 1 — AI & Digital Health"
+    domains:
+      - ai_health
+      - digital_health
+    days: 30
+    horizon_tiers:
+      - H1
+      - H2
+      - H3
+    categories:
+      - regulatory
+      - guidelines
+      - journals
+      - ai_digital
+      - standards
+      - hta
+      - news
+      - aggregator
+      - preprints
+
+  full_scan:
+    name: "Full Medical Intelligence Scan"
+    domains:
+      - all
+    days: 30
+    horizon_tiers:
+      - H1
+      - H2
+      - H3
+      - H4
+    categories:
+      - all
+
+  safety_only:
+    name: "Safety Alerts Only"
+    domains:
+      - all
+    days: 7
+    horizon_tiers:
+      - H1
+    categories:
+      - safety
+      - regulatory
+
+  insurance_focus:
+    name: "Insurance & Reimbursement Focus"
+    domains:
+      - all
+    days: 30
+    horizon_tiers:
+      - H1
+      - H2
+      - H3
+    categories:
+      - regulatory
+      - guidelines
+      - hta
+      - journals
