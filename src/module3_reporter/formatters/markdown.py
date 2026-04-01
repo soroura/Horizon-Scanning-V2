@@ -71,4 +71,5 @@ def format_markdown(
         scored_items=paired,
         domain_counts=dict(domain_counter.most_common()),
         domain_top=domain_top,
+        source_health=run_meta.get("source_health", []),
     )

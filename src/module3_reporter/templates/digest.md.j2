@@ -36,6 +36,18 @@ Run ID: {{ run_id }}  |  Sources scanned: {{ sources_count }}  |  Items scored: 
 - **{{ domain }}**: {{ count }} items{% if domain_top[domain] %} (top: {{ domain_top[domain] | truncate(80) }}){% endif %}
 {% endfor %}
 
+{% if source_health %}
+---
+
+## SOURCE HEALTH
+
+| Source | Status | Items | Time | Error |
+|--------|--------|-------|------|-------|
+{% for sh in source_health %}
+| {{ sh.source_name }} | {{ "✅" if sh.status == "ok" else ("⚠️" if sh.status == "warn" else "❌") }} {{ sh.status }} | {{ sh.items_count }} | {{ "%.1f" | format(sh.duration_ms / 1000) }}s | {{ sh.error_message }} |
+{% endfor %}
+
+{% endif %}
 ---
 
 ## FULL ITEM LIST ({{ items | length }} items, ordered by score)
