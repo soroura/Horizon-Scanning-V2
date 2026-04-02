@@ -1,6 +1,6 @@
 """
 Horizon Scanning Platform v2 — Streamlit dashboard.
-Run: streamlit run app.py
+Run: python -m streamlit run app.py
 """
 from __future__ import annotations
 
@@ -56,7 +56,10 @@ def render_sidebar() -> dict:
         "Date range",
         options=[7, 30, 90, 180, 365, 1825],
         index=4,
-        format_func=lambda x: {7: "Last 7 days", 30: "Last 30 days", 90: "Last 90 days", 180: "Last 6 months", 365: "Last 1 year", 1825: "Last 5 years"}.get(x, f"Last {x} days"),
+        format_func=lambda x: {
+            7: "Last 7 days", 30: "Last 30 days", 90: "Last 90 days",
+            180: "Last 6 months", 365: "Last 1 year", 1825: "Last 5 years",
+        }.get(x, f"Last {x} days"),
     )
 
     st.sidebar.markdown("---")
@@ -156,7 +159,6 @@ def render_item_list_and_detail(df):
         }
     )
 
-    # Clickable table — select a row to see details below
     event = st.dataframe(
         display_df,
         use_container_width=True,
@@ -165,7 +167,6 @@ def render_item_list_and_detail(df):
         selection_mode="single-row",
     )
 
-    # Show detail for selected row
     selected_rows = event.selection.rows if event.selection else []
     if not selected_rows:
         st.caption("Click a row above to see item details.")
@@ -209,11 +210,10 @@ def main():
     st.title("🔭 Horizon Scanning Intelligence Dashboard")
     st.caption(f"Last {filters['days']} days · {filters['db_path']}")
 
-    # Check if DB exists
     if not filters["db_path"].exists():
         st.warning(
             f"Database not found at `{filters['db_path']}`. "
-            "Run `python -m v2.main scan` first to populate it."
+            "Run `python -m src scan` first to populate it."
         )
         return
 
@@ -267,7 +267,6 @@ def main():
     with tab4:
         import plotly.express as px
 
-        # --- Domain trends line chart ---
         trends_df = get_domain_trends_df(db_path=filters["db_path"])
         if not trends_df.empty and trends_df["run_id"].nunique() > 1:
             st.subheader("Items per Domain Over Time")
@@ -284,7 +283,6 @@ def main():
         elif not trends_df.empty:
             st.info("Run at least 2 scans to see domain trends over time.")
 
-        # --- New topics ---
         st.subheader("New This Period")
         new_df = get_new_topics_df(db_path=filters["db_path"])
         if new_df.empty:
@@ -299,7 +297,6 @@ def main():
             st.dataframe(display, use_container_width=True, hide_index=True)
             st.caption(f"{len(new_df)} new items total")
 
-        # --- Gap analysis ---
         gaps = get_gap_analysis(db_path=filters["db_path"])
         if gaps["category_gaps"] or gaps["domain_gaps"]:
             st.subheader("Coverage Gaps")

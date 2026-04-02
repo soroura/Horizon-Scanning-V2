@@ -42,8 +42,6 @@ async def run_scan(
     seen_ids: set[str],
     config_dir: Path | None = None,
     source_ids: list[str] | None = None,
-    from_date: date | None = None,
-    to_date: date | None = None,
 ) -> tuple[list[ScanItem], int, list[SourceResult]]:
     """
     Fetch items from all active sources in the profile, normalise and deduplicate.
@@ -55,11 +53,10 @@ async def run_scan(
     profile = load_profile(profile_name, **kwargs)
 
     if source_ids:
-        # Explicit --sources: load ALL active sources, filter by ID only (bypass profile filters)
+        # Explicit --sources: load ALL active sources, bypass profile filters
         sources = load_active_sources(**kwargs)
         sources = [s for s in sources if s.id in source_ids]
     else:
-        # No --sources: apply profile domain/category/tier filters
         sources = load_active_sources(
             domains=profile.domains,
             categories=profile.categories,
@@ -70,15 +67,6 @@ async def run_scan(
     if not sources:
         print("[WARN]  No active sources matched the profile filters.", file=sys.stderr)
         return [], 0, []
-
-    # Compute effective days from date range if provided
-    if from_date and to_date:
-        days = (to_date - from_date).days
-        if days <= 0:
-            days = 30
-    elif from_date:
-        days = (datetime.now(tz=timezone.utc).date() - from_date).days
-    # else: use the days parameter as-is
 
     print(
         f"[INFO]  Scanning {len(sources)} sources "

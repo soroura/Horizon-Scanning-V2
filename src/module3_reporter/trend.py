@@ -155,7 +155,6 @@ def get_domain_trends_df(
     if raw_df.empty:
         return pd.DataFrame(columns=["run_id", "run_date", "domain", "item_count", "avg_score"])
 
-    # Explode JSON domains into separate rows
     raw_df["domains_list"] = raw_df["domains"].apply(lambda x: json.loads(x) if x else [])
     rows = []
     for _, row in raw_df.iterrows():
@@ -183,10 +182,7 @@ def get_domain_trends_df(
 def get_gap_analysis(
     db_path: Path = DEFAULT_DB_PATH,
 ) -> dict[str, list[str]]:
-    """
-    Compare categories/domains in latest run vs all previous runs.
-    Returns category_gaps and domain_gaps (present before, absent now).
-    """
+    """Compare categories/domains in latest run vs all previous runs."""
     db = init_db(db_path)
 
     row = db.execute("SELECT run_id FROM scan_runs ORDER BY started_at DESC LIMIT 1").fetchone()
@@ -194,7 +190,6 @@ def get_gap_analysis(
         return {"category_gaps": [], "domain_gaps": []}
     latest_run = row[0]
 
-    # Categories in latest run vs all previous
     cat_rows = db.execute(
         "SELECT DISTINCT category FROM scan_items WHERE run_id = ?", [latest_run]
     ).fetchall()
@@ -205,7 +200,6 @@ def get_gap_analysis(
 
     category_gaps = sorted(all_categories - latest_categories)
 
-    # Domains in previous runs but not in latest
     prev_domain_rows = db.execute(
         "SELECT DISTINCT domains FROM scan_items WHERE run_id != ?", [latest_run]
     ).fetchall()

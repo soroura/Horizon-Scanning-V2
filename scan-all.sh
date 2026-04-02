@@ -7,6 +7,12 @@ set -e
 echo "=== Horizon Scanning — Full Scan ==="
 echo ""
 
+# Check we're in the right directory
+if [ ! -f "app.py" ]; then
+    echo "ERROR: Run this from the Horizon-Scanning-V2 directory"
+    exit 1
+fi
+
 # 1. AI + Digital Health sources (30 days)
 echo "--- Scanning AI & Digital Health sources (30 days) ---"
 python -m src scan --profile phase1_ai_digital --days 30 --format markdown --format excel --format html --format pdf

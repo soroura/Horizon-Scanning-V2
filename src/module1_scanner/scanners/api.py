@@ -122,7 +122,8 @@ async def _fetch_arxiv(source: Source, days: int, client: httpx.AsyncClient) -> 
         "sortOrder": "descending",
     }
 
-    resp = await _request_with_retry(client, source.feed_url, source.id, params=params, timeout=30)
+    resp = await client.get(source.feed_url, params=params, timeout=30)
+    resp.raise_for_status()
 
     import xml.etree.ElementTree as ET
     ns = {"atom": "http://www.w3.org/2005/Atom"}
@@ -178,7 +179,8 @@ async def _fetch_medrxiv(source: Source, days: int, client: httpx.AsyncClient) -
     cursor = 0
     while True:
         paged_url = url.replace("/0/json", f"/{cursor}/json")
-        resp = await _request_with_retry(client, paged_url, source.id, timeout=30)
+        resp = await client.get(paged_url, timeout=30)
+        resp.raise_for_status()
         data = resp.json()
 
         collection = data.get("collection", [])
@@ -230,7 +232,8 @@ async def _fetch_pubmed(source: Source, days: int, client: httpx.AsyncClient) ->
         "retmode": "json",
         "usehistory": "y",
     }
-    search_resp = await _request_with_retry(client, f"{base}/esearch.fcgi", source.id, params=search_params, timeout=30)
+    search_resp = await client.get(f"{base}/esearch.fcgi", params=search_params, timeout=30)
+    search_resp.raise_for_status()
     search_data = search_resp.json()
 
     pmids = search_data.get("esearchresult", {}).get("idlist", [])
@@ -247,7 +250,8 @@ async def _fetch_pubmed(source: Source, days: int, client: httpx.AsyncClient) ->
             "retmode": "xml",
             "rettype": "abstract",
         }
-        fetch_resp = await _request_with_retry(client, f"{base}/efetch.fcgi", source.id, params=fetch_params, timeout=30)
+        fetch_resp = await client.get(f"{base}/efetch.fcgi", params=fetch_params, timeout=30)
+        fetch_resp.raise_for_status()
 
         import xml.etree.ElementTree as ET
         try:
@@ -316,7 +320,11 @@ async def _fetch_semantic_scholar(
         "limit": "50",  # reduced to avoid 429
     }
     headers = {"User-Agent": "HorizonScanner/2.0 (clinical-intelligence-research)"}
-    resp = await _request_with_retry(client, source.feed_url, source.id, params=params, timeout=30, headers=headers)
+    resp = await client.get(source.feed_url, params=params, timeout=30, headers=headers)
+    if resp.status_code == 429:
+        print(f"[WARN]  semantic_scholar_api — rate limited (429), skipping", file=sys.stderr)
+        return []
+    resp.raise_for_status()
     data = resp.json()
 
     cutoff = (datetime.now(tz=timezone.utc) - timedelta(days=days)).date()
@@ -360,9 +368,6 @@ async def _fetch_openfda(
 ) -> list[dict]:
     """Fetch recent 510(k) device clearances from openFDA."""
     end_dt = datetime.now(tz=timezone.utc)
-    start_dt = end_dt - timedelta(days=days)
-    # openFDA requires unencoded Lucene brackets — pass as raw URL, not params dict
-    # Use max(days, 90) because openFDA data typically lags ~2 months behind
     lookback = max(days, 90)
     start_dt = end_dt - timedelta(days=lookback)
     url = (
@@ -374,7 +379,7 @@ async def _fetch_openfda(
         resp = await _request_with_retry(client, url, source.id, timeout=30)
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 404:
-            return []  # openFDA returns 404 when no results match the date range
+            return []
         raise
     data = resp.json()
 
@@ -436,7 +441,6 @@ async def _fetch_openfda_drugs(
         generic = openfda.get("generic_name", [""])[0] if openfda.get("generic_name") else ""
         sponsor = result.get("sponsor_name", "")
         app_number = result.get("application_number", "")
-
         name = brand or generic or app_number
         if not name:
             continue
@@ -468,7 +472,6 @@ async def _fetch_openfda_drugs(
             "is_preprint": False,
             "_source": source,
         })
-
     return items
 
 
@@ -497,26 +500,20 @@ async def _fetch_openfda_recalls(
         product = result.get("product_description", "").strip()
         if not product:
             continue
-
         recalling_firm = result.get("recalling_firm", "")
         classification = result.get("classification", "")
         reason = result.get("reason_for_recall", "")
-        status = result.get("status", "")
         report_date = result.get("report_date", "")
-        recall_number = result.get("recall_number", "")
 
         class_label = {"Class I": "Most serious", "Class II": "Moderate", "Class III": "Minor"}.get(classification, classification)
-
-        summary = f"Recall ({classification} — {class_label}): {product[:200]}. "
-        summary += f"Firm: {recalling_firm}. "
+        summary = f"Recall ({classification} — {class_label}): {product[:200]}. Firm: {recalling_firm}. "
         if reason:
             summary += f"Reason: {reason[:300]}."
 
         pub_date = _parse_simple_date(report_date)
-
         items.append({
             "title": f"FDA Recall: {product[:100]} — {classification}",
-            "url": f"https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts",
+            "url": "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts",
             "summary": summary[:2000],
             "published_date": pub_date or end_dt.date(),
             "authors": [recalling_firm] if recalling_firm else [],
@@ -526,7 +523,6 @@ async def _fetch_openfda_recalls(
             "is_preprint": False,
             "_source": source,
         })
-
     return items
 
 
@@ -541,7 +537,8 @@ async def _fetch_papers_with_code(
         "items_per_page": "50",
         "ordering": "-published",
     }
-    resp = await _request_with_retry(client, source.feed_url, source.id, params=params, timeout=30)
+    resp = await client.get(source.feed_url, params=params, timeout=30)
+    resp.raise_for_status()
     data = resp.json()
 
     cutoff = (datetime.now(tz=timezone.utc) - timedelta(days=days)).date()
@@ -579,7 +576,8 @@ async def _fetch_papers_with_code(
 async def _fetch_generic_json(
     source: Source, days: int, client: httpx.AsyncClient
 ) -> list[dict]:
-    resp = await _request_with_retry(client, source.feed_url, source.id, timeout=30)
+    resp = await client.get(source.feed_url, timeout=30)
+    resp.raise_for_status()
     # Minimal fallback — return empty; specialist adapter should be added
     return []
 
