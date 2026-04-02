@@ -389,8 +389,8 @@ sources:
     horizon_tier: H2
     programmatic_access: rss_only
     priority_rank: null
-    notes: "Clinical terminology standard"
-    active: true
+    notes: "Clinical terminology standard — feed malformed XML, needs investigation"
+    active: false
 
   - id: openehr_foundation
     name: "OpenEHR Foundation"
@@ -424,8 +424,8 @@ sources:
     horizon_tier: H1
     programmatic_access: rss_only
     priority_rank: null
-    notes: "US Office of National Coordinator for Health IT"
-    active: true
+    notes: "US Office of National Coordinator — feed returns junk XML, needs investigation"
+    active: false
 
   - id: ema_human_medicines
     name: "EMA Human Medicines"
@@ -442,8 +442,8 @@ sources:
     horizon_tier: H1
     programmatic_access: rss_only
     priority_rank: null
-    notes: "Broader EMA news — supplements ema_news"
-    active: true
+    notes: "Broader EMA news — feed malformed XML, needs investigation"
+    active: false
 
   # ─── News / Industry ────────────────────────────────────────────────────────
   - id: himss_news
@@ -461,8 +461,8 @@ sources:
     horizon_tier: H2
     programmatic_access: rss_only
     priority_rank: null
-    notes: "Health IT industry news and events"
-    active: true
+    notes: "Health IT industry news — feed malformed XML, needs investigation"
+    active: false
 
   # ─── Specialty / Research Labs ──────────────────────────────────────────────
   - id: turing_health
@@ -562,12 +562,47 @@ sources:
     access: free
     auth_required: false
     update_frequency: daily
-    domains: [ai_health, digital_health]
+    domains: [fda_regulatory]
     horizon_tier: H1
     programmatic_access: full
     priority_rank: null
-    notes: "510(k) device clearances including AI/ML medical devices"
+    notes: "510(k) device clearances — all devices, not filtered to AI/digital only"
     active: true
+    skip_domain_filter: true
+
+  - id: openfda_drugs
+    name: "openFDA Drug Approvals"
+    category: regulatory
+    url: "https://api.fda.gov/"
+    feed_type: api
+    feed_url: "https://api.fda.gov/drug/drugsfda.json"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains: [fda_regulatory]
+    horizon_tier: H1
+    programmatic_access: full
+    priority_rank: null
+    notes: "Drug approval submissions — all NDA, ANDA, BLA approvals and supplements"
+    active: true
+    skip_domain_filter: true
+
+  - id: openfda_recalls
+    name: "openFDA Drug Recalls"
+    category: safety
+    url: "https://api.fda.gov/"
+    feed_type: api
+    feed_url: "https://api.fda.gov/drug/enforcement.json"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains: [fda_regulatory]
+    horizon_tier: H1
+    programmatic_access: full
+    priority_rank: null
+    notes: "Drug recall and enforcement actions — all Class I/II/III"
+    active: true
+    skip_domain_filter: true
 
   # ─── ML Papers With Code ────────────────────────────────────────────────────
   - id: papers_with_code
@@ -585,3 +620,21 @@ sources:
     priority_rank: null
     notes: "ML papers linked to code — includes medical imaging, clinical NLP"
     active: true
+
+  # ─── Clinical Trials ──────────────────────────────────────────────────────────
+  - id: clinicaltrials_gov
+    name: "ClinicalTrials.gov"
+    category: trials
+    url: "https://clinicaltrials.gov/"
+    feed_type: api
+    feed_url: "https://clinicaltrials.gov/api/v2/studies"
+    access: free
+    auth_required: false
+    update_frequency: daily
+    domains: [ai_health, digital_health]
+    horizon_tier: H3
+    programmatic_access: full
+    priority_rank: null
+    notes: "AI/digital health clinical trials — searches for AI, ML, digital health, mHealth, wearable, remote monitoring"
+    active: true
+    skip_domain_filter: true

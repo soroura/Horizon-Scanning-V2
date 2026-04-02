@@ -48,6 +48,32 @@ Run ID: {{ run_id }}  |  Sources scanned: {{ sources_count }}  |  Items scored: 
 {% endfor %}
 
 {% endif %}
+{% if new_topics %}
+---
+
+## NEW THIS PERIOD ({{ new_topics | length }} items)
+
+{% for item in new_topics[:10] %}
+- **{{ item.title | truncate(100) }}** — Score: {{ item.composite_score }}/100 | {{ item.source_name }} | {{ item.published_date }}
+{% endfor %}
+{% if new_topics | length > 10 %}
+_... and {{ new_topics | length - 10 }} more new items._
+{% endif %}
+
+{% endif %}
+{% if category_gaps or domain_gaps %}
+---
+
+## COVERAGE GAPS
+
+{% if category_gaps %}
+**Categories with no items this period:** {{ category_gaps | join(", ") }}
+{% endif %}
+{% if domain_gaps %}
+**Domains declining (present before, absent now):** {{ domain_gaps | join(", ") }}
+{% endif %}
+
+{% endif %}
 ---
 
 ## FULL ITEM LIST ({{ items | length }} items, ordered by score)

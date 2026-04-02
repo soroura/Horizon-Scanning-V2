@@ -36,6 +36,8 @@ _DEFAULT_DB = Path("data/scan_history.db")
 def scan(
     profile: str = typer.Option("phase1_ai_digital", help="Named scan profile"),
     days: int = typer.Option(30, help="Look-back window in days"),
+    from_date: Optional[str] = typer.Option(None, "--from-date", help="Start date (YYYY-MM-DD). Overrides --days."),
+    to_date: Optional[str] = typer.Option(None, "--to-date", help="End date (YYYY-MM-DD). Defaults to today."),
     sources: Optional[str] = typer.Option(None, help="Comma-separated source IDs to scan"),
     output: Path = typer.Option(_DEFAULT_OUTPUT, help="Output directory"),
     format: List[str] = typer.Option(["markdown"], "--format", help="Output formats: markdown, html, excel, json, pdf. Pass multiple times: --format pdf --format excel"),
@@ -43,12 +45,18 @@ def scan(
     db_path: Path = typer.Option(_DEFAULT_DB, hidden=True),
 ):
     """Run a scanning pipeline pass and produce intelligence output."""
+    from datetime import date as _date
+
     # Support both --format pdf --format excel AND --format pdf,excel
     formats = []
     for f in format:
         formats.extend(part.strip() for part in f.split(","))
     source_ids = [s.strip() for s in sources.split(",")] if sources else None
     run_id = str(uuid.uuid4())
+
+    # Parse date range
+    parsed_from = _date.fromisoformat(from_date) if from_date else None
+    parsed_to = _date.fromisoformat(to_date) if to_date else None
 
     # Import here to keep startup fast
     from src.database import init_db, save_run_start, save_run_complete, save_items, get_seen_item_ids, save_source_health
@@ -67,6 +75,8 @@ def scan(
             days=days,
             seen_ids=get_seen_item_ids(db),
             source_ids=source_ids,
+            from_date=parsed_from,
+            to_date=parsed_to,
         )
     )
 
@@ -88,12 +98,20 @@ def scan(
 
     # Phase 3: Report
     items_by_id = {item.id: item for item in scan_items}
+    # Build a descriptive label for output filenames
+    scan_label = None
+    if source_ids:
+        # Use source IDs as label (e.g. "openfda_devices+openfda_drugs")
+        scan_label = "+".join(sorted(set(item.source_id for item in scan_items)))
+
     run_meta = {
         "run_id": run_id,
         "profile_name": profile,
         "run_date": started_at.strftime("%Y-%m-%d"),
         "sources_count": len(set(item.source_id for item in scan_items)),
         "source_health": source_results,
+        "db_path": db_path,
+        "scan_label": scan_label,
     }
     generate_report(scorecards, items_by_id, run_meta, formats, output)
 

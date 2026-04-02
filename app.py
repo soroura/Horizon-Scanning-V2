@@ -19,7 +19,10 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-from src.module3_reporter.trend import get_items_df, get_triage_summary, get_domain_breakdown
+from src.module3_reporter.trend import (
+    get_items_df, get_triage_summary, get_domain_breakdown,
+    get_source_health_df, get_new_topics_df, get_domain_trends_df, get_gap_analysis,
+)
 from src.database import DEFAULT_DB_PATH
 
 # ── Triage colour map ─────────────────────────────────────────────────────────
@@ -67,7 +70,7 @@ def render_sidebar() -> dict:
 
     domain_filter = st.sidebar.multiselect(
         "Domains",
-        options=["ai_health", "digital_health"],
+        options=["ai_health", "digital_health", "fda_regulatory"],
         default=[],
         help="Leave empty to show all",
     )
@@ -128,55 +131,49 @@ def render_scatter(df):
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ── Item list ────────────────────────────────────────────────────────────────
+# ── Item list + detail (click row to see details) ───────────────────────────
 
-def render_item_list(df):
+def render_item_list_and_detail(df):
     if df.empty:
         st.info("No items match the current filters. Try widening the date range or adjusting filters.")
         return
 
-    display_cols = [
-        "triage_emoji", "title", "source_name",
-        "published_date", "composite_score", "triage_level",
-    ]
-    # Add triage_emoji derived column
     df = df.copy()
     df["triage_emoji"] = df["triage_level"].map(TRIAGE_EMOJI)
     df["title_short"] = df["title"].str[:90]
 
-    st.dataframe(
-        df[["triage_emoji", "title_short", "source_name", "published_date",
-            "composite_score", "triage_level", "horizon_tier", "is_preprint"]].rename(
-            columns={
-                "triage_emoji": "",
-                "title_short": "Title",
-                "source_name": "Source",
-                "published_date": "Published",
-                "composite_score": "Score",
-                "triage_level": "Triage",
-                "horizon_tier": "Tier",
-                "is_preprint": "Preprint",
-            }
-        ),
-        use_container_width=True,
-        hide_index=True,
+    display_df = df[["triage_emoji", "title_short", "source_name", "published_date",
+                      "composite_score", "triage_level", "horizon_tier", "is_preprint"]].rename(
+        columns={
+            "triage_emoji": "",
+            "title_short": "Title",
+            "source_name": "Source",
+            "published_date": "Published",
+            "composite_score": "Score",
+            "triage_level": "Triage",
+            "horizon_tier": "Tier",
+            "is_preprint": "Preprint",
+        }
     )
 
+    # Clickable table — select a row to see details below
+    event = st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="single-row",
+    )
 
-# ── Item detail pane ─────────────────────────────────────────────────────────
-
-def render_item_detail(df):
-    if df.empty:
+    # Show detail for selected row
+    selected_rows = event.selection.rows if event.selection else []
+    if not selected_rows:
+        st.caption("Click a row above to see item details.")
         return
 
+    row = df.iloc[selected_rows[0]]
+
     st.markdown("---")
-    st.subheader("Item Detail")
-
-    titles = df["title"].str[:100].tolist()
-    selected = st.selectbox("Select an item to view details:", options=titles, index=0)
-
-    row = df[df["title"].str[:100] == selected].iloc[0]
-
     col1, col2 = st.columns([2, 1])
     with col1:
         st.markdown(f"### {row['title']}")
@@ -233,15 +230,85 @@ def main():
         horizon_tiers=filters.get("horizon_filter"),
     )
 
-    tab1, tab2 = st.tabs(["📋 Item List", "📊 Score Chart"])
+    tab1, tab2, tab3, tab4 = st.tabs(["📋 Item List", "📊 Score Chart", "🏥 Source Health", "📈 Trends"])
 
     with tab1:
         st.caption(f"{len(df)} items")
-        render_item_list(df)
-        render_item_detail(df)
+        render_item_list_and_detail(df)
 
     with tab2:
         render_scatter(df)
+
+    with tab3:
+        health_df = get_source_health_df(db_path=filters["db_path"])
+        if health_df.empty:
+            st.info("No source health data yet. Run a scan first.")
+        else:
+            display = health_df[["source_name", "status", "items_count", "duration_ms", "error_message"]].copy()
+            display["duration_s"] = (display["duration_ms"] / 1000).round(1)
+            display = display.drop(columns=["duration_ms"])
+            display = display.rename(columns={
+                "source_name": "Source",
+                "status": "Status",
+                "items_count": "Items",
+                "duration_s": "Time (s)",
+                "error_message": "Error",
+            })
+            st.dataframe(display, use_container_width=True, hide_index=True)
+
+            ok_count = len(health_df[health_df["status"] == "ok"])
+            warn_count = len(health_df[health_df["status"] == "warn"])
+            error_count = len(health_df[health_df["status"] == "error"])
+            cols = st.columns(3)
+            cols[0].metric("✅ OK", ok_count)
+            cols[1].metric("⚠️ Warn", warn_count)
+            cols[2].metric("❌ Error", error_count)
+
+    with tab4:
+        import plotly.express as px
+
+        # --- Domain trends line chart ---
+        trends_df = get_domain_trends_df(db_path=filters["db_path"])
+        if not trends_df.empty and trends_df["run_id"].nunique() > 1:
+            st.subheader("Items per Domain Over Time")
+            fig = px.line(
+                trends_df,
+                x="run_date",
+                y="item_count",
+                color="domain",
+                markers=True,
+                labels={"run_date": "Run Date", "item_count": "Items", "domain": "Domain"},
+            )
+            fig.update_layout(height=350)
+            st.plotly_chart(fig, use_container_width=True)
+        elif not trends_df.empty:
+            st.info("Run at least 2 scans to see domain trends over time.")
+
+        # --- New topics ---
+        st.subheader("New This Period")
+        new_df = get_new_topics_df(db_path=filters["db_path"])
+        if new_df.empty:
+            st.info("No new topics detected (all items were seen in previous runs, or this is the first run).")
+        else:
+            display = new_df[["title", "source_name", "composite_score", "triage_level", "published_date"]].head(20).copy()
+            display = display.rename(columns={
+                "title": "Title", "source_name": "Source",
+                "composite_score": "Score", "triage_level": "Triage",
+                "published_date": "Published",
+            })
+            st.dataframe(display, use_container_width=True, hide_index=True)
+            st.caption(f"{len(new_df)} new items total")
+
+        # --- Gap analysis ---
+        gaps = get_gap_analysis(db_path=filters["db_path"])
+        if gaps["category_gaps"] or gaps["domain_gaps"]:
+            st.subheader("Coverage Gaps")
+            if gaps["category_gaps"]:
+                st.warning(f"**Categories with no items this period:** {', '.join(gaps['category_gaps'])}")
+            if gaps["domain_gaps"]:
+                st.warning(f"**Domains declining:** {', '.join(gaps['domain_gaps'])}")
+        else:
+            st.success("No coverage gaps detected.")
 
 
 if __name__ == "__main__":

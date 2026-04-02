@@ -60,6 +60,20 @@ def format_markdown(
             if d not in domain_top:
                 domain_top[d] = item.title
 
+    # Trend data (optional — only available when db_path is in run_meta)
+    new_topics_data = []
+    category_gaps = []
+    domain_gaps = []
+    db_path = run_meta.get("db_path")
+    if db_path:
+        from src.module3_reporter.trend import get_new_topics_df, get_gap_analysis
+        nt_df = get_new_topics_df(db_path)
+        if not nt_df.empty:
+            new_topics_data = nt_df.to_dict("records")
+        gaps = get_gap_analysis(db_path)
+        category_gaps = gaps.get("category_gaps", [])
+        domain_gaps = gaps.get("domain_gaps", [])
+
     return template.render(
         run_id=run_meta.get("run_id", ""),
         run_date=run_meta.get("run_date", str(date.today())),
@@ -72,4 +86,7 @@ def format_markdown(
         domain_counts=dict(domain_counter.most_common()),
         domain_top=domain_top,
         source_health=run_meta.get("source_health", []),
+        new_topics=new_topics_data,
+        category_gaps=category_gaps,
+        domain_gaps=domain_gaps,
     )

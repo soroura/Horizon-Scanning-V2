@@ -30,8 +30,10 @@ def generate_report(
     sorted_cards = sorted(scorecards, key=lambda sc: sc.composite_score, reverse=True)
 
     run_date = run_meta.get("run_date", str(date.today()))
-    profile = run_meta.get("profile_name", "scan").replace(" ", "_")
-    stem = f"{run_date}-{profile}"
+    # Use source filter label if specific sources were targeted, otherwise profile name
+    label = run_meta.get("scan_label") or run_meta.get("profile_name", "scan")
+    label = label.replace(" ", "_")
+    stem = f"{run_date}-{label}"
 
     written: list[Path] = []
 

@@ -86,6 +86,16 @@ domains:
       - "AI precision medicine"
       - "computational pathology"
       - "digital pathology AI"
+      # AI research venues and methods (R2.0 expansion)
+      - "neural network clinical"
+      - "transformer model health"
+      - "medical image segmentation"
+      - "clinical benchmark"
+      - "AI device clearance"
+      - "510(k)"
+      - "machine learning diagnosis"
+      - "federated learning health"
+      - "reinforcement learning clinical"
 
   digital_health:
     name: "Digital Health & Health Information Systems"
@@ -179,3 +189,8 @@ domains:
       - "digital mental health"
       - "mental health app"
       - "digital wellbeing"
+      # Standards and interoperability (R2.0 expansion)
+      - "openEHR"
+      - "clinical document architecture"
+      - "CDA"
+      - "digital identity health"
