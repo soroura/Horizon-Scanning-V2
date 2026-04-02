@@ -52,16 +52,17 @@ async def run_scan(
     kwargs = {} if config_dir is None else {"config_dir": config_dir}
     profile = load_profile(profile_name, **kwargs)
 
-    sources = load_active_sources(
-        domains=profile.domains,
-        categories=profile.categories,
-        horizon_tiers=profile.horizon_tiers,
-        **kwargs,
-    )
-
-    # Explicit source filter (from --sources CLI flag)
     if source_ids:
+        # Explicit --sources: load ALL active sources, bypass profile filters
+        sources = load_active_sources(**kwargs)
         sources = [s for s in sources if s.id in source_ids]
+    else:
+        sources = load_active_sources(
+            domains=profile.domains,
+            categories=profile.categories,
+            horizon_tiers=profile.horizon_tiers,
+            **kwargs,
+        )
 
     if not sources:
         print("[WARN]  No active sources matched the profile filters.", file=sys.stderr)
@@ -72,6 +73,9 @@ async def run_scan(
         f"(profile: {profile_name}, days: {days})",
         file=sys.stderr,
     )
+
+    # Build set of source IDs that skip domain filtering
+    skip_filter_ids = {s.id for s in sources if s.skip_domain_filter}
 
     tagger = DomainTagger()
     semaphore = asyncio.Semaphore(_MAX_CONCURRENT)
@@ -97,11 +101,17 @@ async def run_scan(
     # Domain tag → drop unmatched → normalise → deduplicate
     scan_items: list[ScanItem] = []
     for raw in all_raw:
-        tagged = tagger.tag_item(raw)
-        if tagged is None:
-            continue  # no domain match — drop
+        source_obj: Source = raw["_source"]
 
-        source: Source = raw["_source"]
+        if source_obj.id in skip_filter_ids:
+            # Bypass keyword gate — assign source domains directly
+            tagged = {**raw, "domains": source_obj.domains, "keywords_matched": []}
+        else:
+            tagged = tagger.tag_item(raw)
+            if tagged is None:
+                continue  # no domain match — drop
+
+        source: Source = source_obj
         item = _normalise(tagged, source)
         if item is None:
             continue

@@ -35,6 +35,7 @@ class Source(BaseModel):
     priority_rank: int | None = None
     notes: str = ""
     active: bool
+    skip_domain_filter: bool = False
 
     @field_validator("id")
     @classmethod

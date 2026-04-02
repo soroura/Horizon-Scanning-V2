@@ -4,12 +4,48 @@ All HTTP via httpx async; rate-limited with asyncio semaphore in engine.
 """
 from __future__ import annotations
 
+import asyncio as _asyncio
 import sys
 from datetime import date, datetime, timedelta, timezone
 
 import httpx
 
 from src.config_loader import Source
+
+# ─── Retry logic ────────────────────────────────────────────────────────────
+
+_RETRY_STATUS_CODES = {429, 500, 503}
+_MAX_RETRIES = 3
+_BACKOFF_BASE = 2
+
+
+async def _request_with_retry(
+    client: httpx.AsyncClient,
+    url: str,
+    source_id: str,
+    **kwargs,
+) -> httpx.Response:
+    """GET with retry on 429/500/503. Respects Retry-After header."""
+    for attempt in range(1, _MAX_RETRIES + 1):
+        resp = await client.get(url, **kwargs)
+        try:
+            resp.raise_for_status()
+            return resp
+        except httpx.HTTPStatusError:
+            if resp.status_code not in _RETRY_STATUS_CODES or attempt == _MAX_RETRIES:
+                raise
+            retry_after = resp.headers.get("Retry-After")
+            if retry_after and retry_after.isdigit():
+                delay = int(retry_after)
+            else:
+                delay = _BACKOFF_BASE ** attempt
+            print(
+                f"[RETRY] {source_id} — {resp.status_code}, "
+                f"waiting {delay}s (attempt {attempt}/{_MAX_RETRIES})",
+                file=sys.stderr,
+            )
+            await _asyncio.sleep(delay)
+    return resp
 
 
 async def fetch_api(
@@ -39,8 +75,12 @@ async def fetch_api(
         elif source.id.startswith("ema_"):
             from src.module1_scanner.scanners.ema import fetch_ema
             items = await fetch_ema(source, days, client)
-        elif source.id.startswith("openfda"):
+        elif source.id == "openfda_devices":
             items = await _fetch_openfda(source, days, client)
+        elif source.id == "openfda_drugs":
+            items = await _fetch_openfda_drugs(source, days, client)
+        elif source.id == "openfda_recalls":
+            items = await _fetch_openfda_recalls(source, days, client)
         elif source.id == "papers_with_code":
             items = await _fetch_papers_with_code(source, days, client)
         else:
@@ -328,15 +368,19 @@ async def _fetch_openfda(
 ) -> list[dict]:
     """Fetch recent 510(k) device clearances from openFDA."""
     end_dt = datetime.now(tz=timezone.utc)
-    start_dt = end_dt - timedelta(days=days)
-    date_range = f"[{start_dt.strftime('%Y%m%d')}+TO+{end_dt.strftime('%Y%m%d')}]"
-
-    params = {
-        "search": f"decision_date:{date_range}",
-        "limit": "100",
-    }
-    resp = await client.get(source.feed_url, params=params, timeout=30)
-    resp.raise_for_status()
+    lookback = max(days, 90)
+    start_dt = end_dt - timedelta(days=lookback)
+    url = (
+        f"{source.feed_url}"
+        f"?search=decision_date:[{start_dt.strftime('%Y%m%d')}+TO+{end_dt.strftime('%Y%m%d')}]"
+        f"&limit=100"
+    )
+    try:
+        resp = await _request_with_retry(client, url, source.id, timeout=30)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            return []
+        raise
     data = resp.json()
 
     items = []
@@ -367,6 +411,118 @@ async def _fetch_openfda(
             "_source": source,
         })
 
+    return items
+
+
+async def _fetch_openfda_drugs(
+    source: Source, days: int, client: httpx.AsyncClient
+) -> list[dict]:
+    """Fetch recent drug approval submissions from openFDA."""
+    end_dt = datetime.now(tz=timezone.utc)
+    lookback = max(days, 90)
+    start_dt = end_dt - timedelta(days=lookback)
+    url = (
+        f"{source.feed_url}"
+        f"?search=submissions.submission_status_date:[{start_dt.strftime('%Y%m%d')}+TO+{end_dt.strftime('%Y%m%d')}]"
+        f"&limit=100"
+    )
+    try:
+        resp = await _request_with_retry(client, url, source.id, timeout=30)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            return []
+        raise
+    data = resp.json()
+
+    items = []
+    for result in data.get("results", []):
+        openfda = result.get("openfda", {})
+        brand = openfda.get("brand_name", [""])[0] if openfda.get("brand_name") else ""
+        generic = openfda.get("generic_name", [""])[0] if openfda.get("generic_name") else ""
+        sponsor = result.get("sponsor_name", "")
+        app_number = result.get("application_number", "")
+        name = brand or generic or app_number
+        if not name:
+            continue
+
+        subs = result.get("submissions", [])
+        latest_sub = subs[0] if subs else {}
+        sub_type = latest_sub.get("submission_type", "")
+        sub_status = latest_sub.get("submission_status", "")
+        sub_date_str = latest_sub.get("submission_status_date", "")
+        sub_desc = latest_sub.get("submission_class_code_description", "")
+
+        pub_date = _parse_simple_date(sub_date_str)
+        status_label = {"AP": "Approved", "TA": "Tentative Approval"}.get(sub_status, sub_status)
+
+        summary = f"Drug: {name} ({generic}). Sponsor: {sponsor}. "
+        summary += f"Submission: {sub_type} — {status_label}."
+        if sub_desc:
+            summary += f" Type: {sub_desc}."
+
+        items.append({
+            "title": f"FDA Drug: {name} — {status_label}",
+            "url": f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&ApplNo={app_number.replace('NDA','').replace('ANDA','').replace('BLA','')}",
+            "summary": summary[:2000],
+            "published_date": pub_date or end_dt.date(),
+            "authors": [sponsor] if sponsor else [],
+            "journal": "openFDA Drug Approvals",
+            "doi": None,
+            "pmid": None,
+            "is_preprint": False,
+            "_source": source,
+        })
+    return items
+
+
+async def _fetch_openfda_recalls(
+    source: Source, days: int, client: httpx.AsyncClient
+) -> list[dict]:
+    """Fetch recent drug recall/enforcement actions from openFDA."""
+    end_dt = datetime.now(tz=timezone.utc)
+    lookback = max(days, 90)
+    start_dt = end_dt - timedelta(days=lookback)
+    url = (
+        f"{source.feed_url}"
+        f"?search=report_date:[{start_dt.strftime('%Y%m%d')}+TO+{end_dt.strftime('%Y%m%d')}]"
+        f"&limit=100"
+    )
+    try:
+        resp = await _request_with_retry(client, url, source.id, timeout=30)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 404:
+            return []
+        raise
+    data = resp.json()
+
+    items = []
+    for result in data.get("results", []):
+        product = result.get("product_description", "").strip()
+        if not product:
+            continue
+        recalling_firm = result.get("recalling_firm", "")
+        classification = result.get("classification", "")
+        reason = result.get("reason_for_recall", "")
+        report_date = result.get("report_date", "")
+
+        class_label = {"Class I": "Most serious", "Class II": "Moderate", "Class III": "Minor"}.get(classification, classification)
+        summary = f"Recall ({classification} — {class_label}): {product[:200]}. Firm: {recalling_firm}. "
+        if reason:
+            summary += f"Reason: {reason[:300]}."
+
+        pub_date = _parse_simple_date(report_date)
+        items.append({
+            "title": f"FDA Recall: {product[:100]} — {classification}",
+            "url": "https://www.fda.gov/safety/recalls-market-withdrawals-safety-alerts",
+            "summary": summary[:2000],
+            "published_date": pub_date or end_dt.date(),
+            "authors": [recalling_firm] if recalling_firm else [],
+            "journal": "openFDA Drug Recalls",
+            "doi": None,
+            "pmid": None,
+            "is_preprint": False,
+            "_source": source,
+        })
     return items
 
 
@@ -440,9 +596,9 @@ def _parse_iso_date(s: str | None) -> date | None:
 def _parse_simple_date(s: str | None) -> date | None:
     if not s:
         return None
-    for fmt in ("%Y-%m-%d", "%Y-%m", "%Y"):
+    for fmt, width in (("%Y-%m-%d", 10), ("%Y-%m", 7), ("%Y", 4)):
         try:
-            return datetime.strptime(s[:len(fmt)], fmt).date()
+            return datetime.strptime(s[:width], fmt).date()
         except ValueError:
             continue
     return None
