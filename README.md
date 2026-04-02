@@ -12,29 +12,45 @@ Scans 31+ sources (PubMed, arXiv, medRxiv, JMIR, Lancet Digital Health, FDA devi
 pip install -r requirements.txt
 ```
 
-### Step 2: Run your first scan
+### Step 2: Run a full scan (AI + Digital Health + FDA) and push online
+
+One command does everything — scans all sources, generates reports, and pushes to Streamlit Cloud:
 
 ```bash
-python -m src scan --profile phase1_ai_digital --days 7 --format markdown --format excel
+bash scan-all.sh
 ```
 
-Check `outputs/` for results. For a full 30-day scan with all formats:
-
-```bash
-python -m src scan --profile phase1_ai_digital --days 30 --format markdown --format excel --format html --format pdf
-```
+This runs:
+1. AI & Digital Health scan (29 sources, 30 days)
+2. FDA scan (devices + drugs + recalls, 365 days)
+3. Pushes updated database to GitHub → Streamlit Cloud auto-refreshes
 
 ### Step 3: Open the dashboard
 
+**Locally:**
 ```bash
 python -m streamlit run app.py
 ```
 
-Opens at `http://localhost:8501` — four tabs: Item List, Score Chart, Source Health, Trends.
+**Online (Streamlit Cloud):**
+```
+https://soroura-horizon-scanning-v2.streamlit.app
+```
 
-### Step 4: Test a source
+Dashboard has 4 tabs: Item List, Score Chart, Source Health, Trends.
+Sidebar date range: 7 days, 30 days, 90 days, 6 months, 1 year, 5 years.
+Filter by domain: `ai_health`, `digital_health`, `fda_regulatory`.
+
+### Step 4: Run individual scans (optional)
 
 ```bash
+# AI + Digital Health only
+python -m src scan --profile phase1_ai_digital --days 30 --format markdown --format excel
+
+# FDA only
+python -m src scan --sources openfda_devices,openfda_drugs,openfda_recalls --days 365 --format excel --format pdf
+
+# Test a source
 python -m src sources test pubmed_eutils
 python -m src sources list --active-only
 ```

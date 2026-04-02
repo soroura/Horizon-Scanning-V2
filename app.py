@@ -54,9 +54,9 @@ def render_sidebar() -> dict:
 
     date_range = st.sidebar.radio(
         "Date range",
-        options=[7, 30, 90],
-        index=1,
-        format_func=lambda x: f"Last {x} days",
+        options=[7, 30, 90, 180, 365, 1825],
+        index=4,
+        format_func=lambda x: {7: "Last 7 days", 30: "Last 30 days", 90: "Last 90 days", 180: "Last 6 months", 365: "Last 1 year", 1825: "Last 5 years"}.get(x, f"Last {x} days"),
     )
 
     st.sidebar.markdown("---")
